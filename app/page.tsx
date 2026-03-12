@@ -56,38 +56,29 @@ export default async function HomePage() {
         };
       });
     } catch {
-      dbWarning = "데이터베이스 연결에 실패했습니다. Vercel 환경 변수와 Prisma 스키마 반영 상태를 확인해 주세요.";
+      dbWarning = "데이터베이스 연결에 실패했습니다. 환경 변수와 Prisma 스키마 반영 상태를 확인해 주세요.";
     }
   }
 
   return (
-    <main>
-      <header style={{ marginBottom: 24 }}>
-        <p style={{ color: "#9de9b5", marginBottom: 6 }}>Hungry Tyrano Open Chat</p>
+    <main style={{ display: "grid", gap: 18 }}>
+      <header style={{ display: "grid", gap: 10 }}>
+        <p style={{ color: "#9de9b5", margin: 0 }}>Hungry Tyrano Open Chat</p>
         <h1 style={{ margin: 0 }}>배고픈 티라노 채팅 라운지</h1>
-        <p style={{ lineHeight: 1.5, opacity: 0.9 }}>
-          여러 명이 빠르게 대화하고 읽음 상태와 미열람 인원까지 확인할 수 있는 가벼운 오픈채팅 MVP입니다.
-          공개방과 비공개방을 모두 만들 수 있습니다.
+        <p style={{ lineHeight: 1.5, opacity: 0.9, margin: 0 }}>
+          먼저 열려 있는 채팅방을 둘러보고, 필요하면 새 방을 만들어 바로 대화를 시작할 수 있습니다.
         </p>
-        {dbWarning ? <p style={{ marginTop: 12, color: "#ffb3b3" }}>{dbWarning}</p> : null}
+        {dbWarning ? <p style={{ margin: 0, color: "#ffb3b3" }}>{dbWarning}</p> : null}
       </header>
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 16,
-          alignItems: "start"
-        }}
-      >
-        <div className="card" style={{ padding: 16 }}>
-          <h2 style={{ marginTop: 0 }}>새 채팅방 만들기</h2>
-          <CreateRoomForm />
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <h2 style={{ marginTop: 0 }}>오픈 채팅방 목록</h2>
-          <RoomList rooms={rooms} />
-        </div>
+      <section className="card" style={{ padding: 16 }}>
+        <h2 style={{ marginTop: 0 }}>채팅방 리스트</h2>
+        <RoomList rooms={rooms} />
+      </section>
+
+      <section className="card" style={{ padding: 16 }}>
+        <h2 style={{ marginTop: 0 }}>새 채팅방 만들기</h2>
+        <CreateRoomForm />
       </section>
     </main>
   );

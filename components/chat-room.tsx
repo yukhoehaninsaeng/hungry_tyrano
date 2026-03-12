@@ -70,8 +70,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
       }
     }
 
-    const newViewerId = createViewerId();
-    setViewerId(newViewerId);
+    setViewerId(createViewerId());
   }, [roomSlug]);
 
   useEffect(() => {
@@ -81,8 +80,8 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
 
   useEffect(() => {
     if (!joined) return;
-    loadMessages();
 
+    loadMessages();
     const timer = setInterval(async () => {
       await loadMessages();
       await markAsRead();
@@ -187,14 +186,32 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
   return (
     <div style={{ display: "grid", gap: 14, fontSize: layoutStyles.fontSize }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong>{nickname} 님 입장 중</strong>
-        <button onClick={() => setSettingsOpen((prev) => !prev)}>설정</button>
+        <div>
+          <strong>{nickname}</strong>
+          <p style={{ margin: "4px 0 0", opacity: 0.7 }}>대화에 참여 중</p>
+        </div>
+        <button
+          type="button"
+          aria-label="설정 열기"
+          title="설정"
+          onClick={() => setSettingsOpen((prev) => !prev)}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 18
+          }}
+        >
+          ⚙
+        </button>
       </div>
 
       {settingsOpen ? (
         <form className="card" onSubmit={saveSettings} style={{ padding: 12, display: "grid", gap: 8 }}>
-          <label>
-            닉네임
+          <label style={{ display: "grid", gap: 6 }}>
+            <span>닉네임</span>
             <input
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
@@ -203,8 +220,8 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
               required
             />
           </label>
-          <label>
-            채팅 레이아웃
+          <label style={{ display: "grid", gap: 6 }}>
+            <span>채팅 레이아웃</span>
             <select value={layout} onChange={(e) => setLayout(e.target.value as LayoutType)}>
               <option value="cozy">cozy (여유 있는 간격)</option>
               <option value="compact">compact (촘촘한 간격)</option>
@@ -220,6 +237,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
         ) : (
           messages.map((message) => {
             const isMine = message.viewerId === viewerId;
+
             return (
               <div key={message.id} style={{ marginBottom: layoutStyles.itemGap, padding: layoutStyles.itemPadding }}>
                 <strong>{message.nickname}</strong>
@@ -247,6 +265,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
         />
         <button type="submit">전송</button>
       </form>
+
       <style jsx>{`
         input,
         textarea,
