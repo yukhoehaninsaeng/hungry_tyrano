@@ -13,10 +13,7 @@ export async function GET(req: Request) {
   const roomSlug = searchParams.get("roomSlug");
 
   if (!roomSlug) {
-    return NextResponse.json(
-      { message: "roomSlug 쿼리가 필요합니다." },
-      { status: 400 }
-    );
+    return NextResponse.json({ message: "roomSlug 쿼리가 필요합니다." }, { status: 400 });
   }
 
   const room = await prisma.room.findUnique({

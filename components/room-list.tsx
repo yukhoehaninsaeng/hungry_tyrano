@@ -14,7 +14,7 @@ type Room = {
 
 export function RoomList({ rooms }: { rooms: Room[] }) {
   if (!rooms.length) {
-    return <p>아직 채팅방이 없어요. 첫 번째 티라노 방을 만들어보세요!</p>;
+    return <p>아직 채팅방이 없어요. 첫 번째 방을 만들어 보세요.</p>;
   }
 
   return (
@@ -23,11 +23,11 @@ export function RoomList({ rooms }: { rooms: Room[] }) {
         <li key={room.id} className="card" style={{ padding: 14 }}>
           <Link href={`/rooms/${room.slug}`}>
             <strong>
-              {room.isPrivate ? "🔒" : "🌐"} {room.name}
+              {room.isPrivate ? "비공개" : "공개"} {room.name}
             </strong>
             <p style={{ margin: "6px 0", color: "#aee7bf" }}>{room.concept}</p>
             <small>
-              메시지 {room.messageCount}개 · 참여 {room.participantCount}명 · 미열람 {room.unreadParticipantsCount}명
+              메시지 {room.messageCount}개, 참여 {room.participantCount}명, 미열람 {room.unreadParticipantsCount}명
             </small>
           </Link>
         </li>

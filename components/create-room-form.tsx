@@ -39,6 +39,7 @@ export function CreateRoomForm() {
 
       const room = await res.json();
       event.currentTarget.reset();
+      setIsPrivate(false);
       router.push(`/rooms/${room.slug}`);
       router.refresh();
     } catch (err) {
@@ -58,15 +59,15 @@ export function CreateRoomForm() {
         maxLength={30}
         pattern="[a-z0-9-]+"
       />
-      <input name="concept" placeholder="컨셉 한 줄 소개" required maxLength={60} />
+      <input name="concept" placeholder="방의 한 줄 소개" required maxLength={60} />
       <textarea name="description" placeholder="방 설명 (선택)" maxLength={250} rows={3} />
 
       <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
-        비밀방으로 만들기
+        비공개 방으로 만들기
       </label>
 
-      {isPrivate ? <input name="passcode" placeholder="입장 코드" required maxLength={20} /> : null}
+      {isPrivate ? <input name="passcode" placeholder="방 비밀번호 (4~20자)" required maxLength={20} /> : null}
 
       <button disabled={loading} type="submit">
         {loading ? "생성 중..." : "방 만들기"}

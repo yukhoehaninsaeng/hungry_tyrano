@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { verifyPasscode } from "@/lib/passcode";
 
 const joinSchema = z.object({
   viewerId: z.string().min(4).max(64),
@@ -8,10 +9,7 @@ const joinSchema = z.object({
   passcode: z.string().max(20).optional().or(z.literal(""))
 });
 
-export async function POST(
-  req: Request,
-  { params }: { params: { slug: string } }
-) {
+export async function POST(req: Request, { params }: { params: { slug: string } }) {
   const payload = await req.json();
   const parsed = joinSchema.safeParse(payload);
 
@@ -28,8 +26,15 @@ export async function POST(
     return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
   }
 
-  if (room.isPrivate && room.passcode !== (parsed.data.passcode || "")) {
-    return NextResponse.json({ message: "입장 코드가 올바르지 않습니다." }, { status: 403 });
+  if (room.isPrivate) {
+    const isValid =
+      !!room.passcodeHash &&
+      !!room.passcodeSalt &&
+      verifyPasscode(parsed.data.passcode || "", room.passcodeSalt, room.passcodeHash);
+
+    if (!isValid) {
+      return NextResponse.json({ message: "비밀번호가 올바르지 않습니다." }, { status: 403 });
+    }
   }
 
   const participant = await prisma.participant.upsert({

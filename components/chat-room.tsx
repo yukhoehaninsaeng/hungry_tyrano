@@ -22,7 +22,7 @@ function createViewerId() {
 export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [viewerId, setViewerId] = useState("");
-  const [nickname, setNickname] = useState("티라노친구");
+  const [nickname, setNickname] = useState("배고픈 티라노");
   const [content, setContent] = useState("");
   const [layout, setLayout] = useState<LayoutType>("cozy");
   const [passcode, setPasscode] = useState("");
@@ -38,6 +38,23 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
     [layout]
   );
 
+  const loadMessages = useCallback(async () => {
+    const res = await fetch(`/api/messages?roomSlug=${roomSlug}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = (await res.json()) as Message[];
+    setMessages(data);
+  }, [roomSlug]);
+
+  const markAsRead = useCallback(async () => {
+    if (!viewerId || !joined) return;
+
+    await fetch("/api/messages/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roomSlug, viewerId })
+    });
+  }, [joined, roomSlug, viewerId]);
+
   useEffect(() => {
     const key = `hungrytyrano:${roomSlug}`;
     const raw = localStorage.getItem(key);
@@ -45,7 +62,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
       try {
         const parsed = JSON.parse(raw) as { viewerId: string; nickname: string; layout: LayoutType };
         setViewerId(parsed.viewerId);
-        setNickname(parsed.nickname || "티라노친구");
+        setNickname(parsed.nickname || "배고픈 티라노");
         setLayout(parsed.layout || "cozy");
         return;
       } catch {
@@ -59,11 +76,20 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
 
   useEffect(() => {
     if (!viewerId) return;
-    localStorage.setItem(
-      `hungrytyrano:${roomSlug}`,
-      JSON.stringify({ viewerId, nickname, layout })
-    );
+    localStorage.setItem(`hungrytyrano:${roomSlug}`, JSON.stringify({ viewerId, nickname, layout }));
   }, [viewerId, nickname, layout, roomSlug]);
+
+  useEffect(() => {
+    if (!joined) return;
+    loadMessages();
+
+    const timer = setInterval(async () => {
+      await loadMessages();
+      await markAsRead();
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [joined, loadMessages, markAsRead]);
 
   async function joinRoom() {
     if (!viewerId) return;
@@ -86,23 +112,6 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
     await loadMessages();
     await markAsRead();
   }
-
-  const loadMessages = useCallback(async () => {
-    const res = await fetch(`/api/messages?roomSlug=${roomSlug}`, { cache: "no-store" });
-    if (!res.ok) return;
-    const data = (await res.json()) as Message[];
-    setMessages(data);
-  }, [roomSlug]);
-
-  const markAsRead = useCallback(async () => {
-    if (!viewerId || !joined) return;
-
-    await fetch("/api/messages/read", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomSlug, viewerId })
-    });
-  }, [roomSlug, viewerId, joined]);
 
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
@@ -135,17 +144,6 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
     await loadMessages();
   }
 
-  useEffect(() => {
-    if (!joined) return;
-    loadMessages();
-    const timer = setInterval(async () => {
-      await loadMessages();
-      await markAsRead();
-    }, 3000);
-
-    return () => clearInterval(timer);
-  }, [joined, roomSlug, loadMessages, markAsRead]);
-
   if (!joined) {
     return (
       <div className="card" style={{ padding: 14, display: "grid", gap: 10 }}>
@@ -160,7 +158,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
           <input
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
-            placeholder="비밀방 입장 코드"
+            placeholder="방 비밀번호"
             maxLength={20}
           />
         ) : null}
@@ -208,7 +206,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
           <label>
             채팅 레이아웃
             <select value={layout} onChange={(e) => setLayout(e.target.value as LayoutType)}>
-              <option value="cozy">cozy (넉넉한 간격)</option>
+              <option value="cozy">cozy (여유 있는 간격)</option>
               <option value="compact">compact (촘촘한 간격)</option>
             </select>
           </label>
@@ -218,7 +216,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
 
       <div className="card" style={{ minHeight: 350, maxHeight: 460, overflowY: "auto", padding: 14 }}>
         {messages.length === 0 ? (
-          <p>첫 메시지를 남겨서 사냥을 시작해보세요 🦖</p>
+          <p>첫 메시지를 남겨 대화를 시작해 보세요.</p>
         ) : (
           messages.map((message) => {
             const isMine = message.viewerId === viewerId;

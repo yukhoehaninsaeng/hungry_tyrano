@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { hashPasscode } from "@/lib/passcode";
 
 const roomSchema = z
   .object({
@@ -13,10 +14,10 @@ const roomSchema = z
     concept: z.string().min(2).max(60),
     description: z.string().max(250).optional().or(z.literal("")),
     isPrivate: z.boolean().optional().default(false),
-    passcode: z.string().max(20).optional().or(z.literal(""))
+    passcode: z.string().min(4).max(20).optional().or(z.literal(""))
   })
   .refine((value) => !(value.isPrivate && !value.passcode), {
-    message: "비밀방은 입장 코드를 설정해야 합니다.",
+    message: "비공개 방은 비밀번호를 설정해야 합니다.",
     path: ["passcode"]
   });
 
@@ -69,6 +70,10 @@ export async function POST(req: Request) {
     );
   }
 
+  const passcodeValues = parsed.data.isPrivate
+    ? hashPasscode(parsed.data.passcode ?? "")
+    : { passcodeHash: null, passcodeSalt: null };
+
   const room = await prisma.room.create({
     data: {
       name: parsed.data.name,
@@ -76,7 +81,8 @@ export async function POST(req: Request) {
       concept: parsed.data.concept,
       description: parsed.data.description || null,
       isPrivate: parsed.data.isPrivate,
-      passcode: parsed.data.isPrivate ? parsed.data.passcode || null : null
+      passcodeHash: passcodeValues.passcodeHash,
+      passcodeSalt: passcodeValues.passcodeSalt
     }
   });
 

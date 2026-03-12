@@ -40,8 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 403 });
   }
 
-  // 타입을 명시적으로 지정해서 noImplicitAny 오류 방지
-  const unreadMessages: { id: string }[] = await prisma.message.findMany({
+  const unreadMessages = await prisma.message.findMany({
     where: {
       roomId: room.id,
       reads: {

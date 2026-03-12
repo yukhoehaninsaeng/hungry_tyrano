@@ -8,28 +8,30 @@ datasource db {
 }
 
 model Room {
-  id          String        @id @default(cuid())
-  name        String
-  slug        String        @unique
-  concept     String
-  description String?
-  isPrivate   Boolean       @default(false)
-  passcode    String?
-  createdAt   DateTime      @default(now())
-  messages    Message[]
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  concept      String
+  description  String?
+  isPrivate    Boolean       @default(false)
+  passcodeHash String?
+  passcodeSalt String?
+  createdAt    DateTime      @default(now())
+  messages     Message[]
+  messageReads MessageRead[]
   participants Participant[]
 }
 
 model Participant {
-  id             String        @id @default(cuid())
-  roomId         String
-  viewerId       String
-  nickname       String
-  layout         String        @default("cozy")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  room           Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  messageReads   MessageRead[]
+  id           String        @id @default(cuid())
+  roomId       String
+  viewerId     String
+  nickname     String
+  layout       String        @default("cozy")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  room         Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  messageReads MessageRead[]
 
   @@unique([roomId, viewerId])
   @@index([roomId])

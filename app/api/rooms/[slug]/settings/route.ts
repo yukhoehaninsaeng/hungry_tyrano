@@ -8,10 +8,7 @@ const settingsSchema = z.object({
   layout: z.enum(["compact", "cozy"]).optional()
 });
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { slug: string } }
-) {
+export async function PATCH(req: Request, { params }: { params: { slug: string } }) {
   const payload = await req.json();
   const parsed = settingsSchema.safeParse(payload);
 
