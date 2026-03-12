@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  concept     String
+  description String?
+  isPrivate   Boolean       @default(false)
+  passcode    String?
+  createdAt   DateTime      @default(now())
+  messages    Message[]
+  participants Participant[]
+}
+
+model Participant {
+  id             String        @id @default(cuid())
+  roomId         String
+  viewerId       String
+  nickname       String
+  layout         String        @default("cozy")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  room           Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  messageReads   MessageRead[]
+
+  @@unique([roomId, viewerId])
+  @@index([roomId])
+}
+
+model Message {
+  id        String        @id @default(cuid())
+  roomId    String
+  nickname  String
+  viewerId  String
+  content   String
+  createdAt DateTime      @default(now())
+  room      Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reads     MessageRead[]
+
+  @@index([roomId, createdAt])
+}
+
+model MessageRead {
+  id            String      @id @default(cuid())
+  roomId        String
+  messageId     String
+  participantId String
+  readAt        DateTime    @default(now())
+  room          Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, participantId])
+  @@index([roomId, readAt])
+}
