@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { createDatabaseUnavailableResponse, isDatabaseConfigured } from "@/lib/db-errors";
 import { hashPasscode } from "@/lib/passcode";
+import { prisma } from "@/lib/prisma";
 
 const roomSchema = z
   .object({
@@ -22,44 +23,56 @@ const roomSchema = z
   });
 
 export async function GET() {
-  const rooms = await prisma.room.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: {
-        select: { messages: true, participants: true }
-      },
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        include: { reads: true }
+  if (!isDatabaseConfigured()) {
+    return createDatabaseUnavailableResponse();
+  }
+
+  try {
+    const rooms = await prisma.room.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: {
+          select: { messages: true, participants: true }
+        },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { reads: true }
+        }
       }
-    }
-  });
+    });
 
-  const mapped = rooms.map((room) => {
-    const latestMessage = room.messages[0];
-    const unreadParticipantsCount = latestMessage
-      ? Math.max(0, room._count.participants - latestMessage.reads.length)
-      : 0;
+    const mapped = rooms.map((room) => {
+      const latestMessage = room.messages[0];
+      const unreadParticipantsCount = latestMessage
+        ? Math.max(0, room._count.participants - latestMessage.reads.length)
+        : 0;
 
-    return {
-      id: room.id,
-      name: room.name,
-      slug: room.slug,
-      concept: room.concept,
-      description: room.description,
-      isPrivate: room.isPrivate,
-      createdAt: room.createdAt,
-      messageCount: room._count.messages,
-      participantCount: room._count.participants,
-      unreadParticipantsCount
-    };
-  });
+      return {
+        id: room.id,
+        name: room.name,
+        slug: room.slug,
+        concept: room.concept,
+        description: room.description,
+        isPrivate: room.isPrivate,
+        createdAt: room.createdAt,
+        messageCount: room._count.messages,
+        participantCount: room._count.participants,
+        unreadParticipantsCount
+      };
+    });
 
-  return NextResponse.json(mapped);
+    return NextResponse.json(mapped);
+  } catch {
+    return createDatabaseUnavailableResponse();
+  }
 }
 
 export async function POST(req: Request) {
+  if (!isDatabaseConfigured()) {
+    return createDatabaseUnavailableResponse();
+  }
+
   const payload = await req.json();
   const parsed = roomSchema.safeParse(payload);
 
@@ -74,17 +87,21 @@ export async function POST(req: Request) {
     ? hashPasscode(parsed.data.passcode ?? "")
     : { passcodeHash: null, passcodeSalt: null };
 
-  const room = await prisma.room.create({
-    data: {
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      concept: parsed.data.concept,
-      description: parsed.data.description || null,
-      isPrivate: parsed.data.isPrivate,
-      passcodeHash: passcodeValues.passcodeHash,
-      passcodeSalt: passcodeValues.passcodeSalt
-    }
-  });
+  try {
+    const room = await prisma.room.create({
+      data: {
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        concept: parsed.data.concept,
+        description: parsed.data.description || null,
+        isPrivate: parsed.data.isPrivate,
+        passcodeHash: passcodeValues.passcodeHash,
+        passcodeSalt: passcodeValues.passcodeSalt
+      }
+    });
 
-  return NextResponse.json(room, { status: 201 });
+    return NextResponse.json(room, { status: 201 });
+  } catch {
+    return createDatabaseUnavailableResponse();
+  }
 }

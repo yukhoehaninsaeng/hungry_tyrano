@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createDatabaseUnavailableResponse, isDatabaseConfigured } from "@/lib/db-errors";
 import { prisma } from "@/lib/prisma";
 
 const createMessageSchema = z.object({
@@ -9,6 +10,10 @@ const createMessageSchema = z.object({
 });
 
 export async function GET(req: Request) {
+  if (!isDatabaseConfigured()) {
+    return createDatabaseUnavailableResponse();
+  }
+
   const { searchParams } = new URL(req.url);
   const roomSlug = searchParams.get("roomSlug");
 
@@ -16,30 +21,38 @@ export async function GET(req: Request) {
     return NextResponse.json({ message: "roomSlug 쿼리가 필요합니다." }, { status: 400 });
   }
 
-  const room = await prisma.room.findUnique({
-    where: { slug: roomSlug },
-    select: { id: true }
-  });
+  try {
+    const room = await prisma.room.findUnique({
+      where: { slug: roomSlug },
+      select: { id: true }
+    });
 
-  if (!room) {
-    return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
-  }
-
-  const messages = await prisma.message.findMany({
-    where: { roomId: room.id },
-    orderBy: { createdAt: "asc" },
-    take: 200,
-    include: {
-      _count: {
-        select: { reads: true }
-      }
+    if (!room) {
+      return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
     }
-  });
 
-  return NextResponse.json(messages);
+    const messages = await prisma.message.findMany({
+      where: { roomId: room.id },
+      orderBy: { createdAt: "asc" },
+      take: 200,
+      include: {
+        _count: {
+          select: { reads: true }
+        }
+      }
+    });
+
+    return NextResponse.json(messages);
+  } catch {
+    return createDatabaseUnavailableResponse();
+  }
 }
 
 export async function POST(req: Request) {
+  if (!isDatabaseConfigured()) {
+    return createDatabaseUnavailableResponse();
+  }
+
   const payload = await req.json();
   const parsed = createMessageSchema.safeParse(payload);
 
@@ -50,44 +63,48 @@ export async function POST(req: Request) {
     );
   }
 
-  const room = await prisma.room.findUnique({
-    where: { slug: parsed.data.roomSlug },
-    select: { id: true }
-  });
+  try {
+    const room = await prisma.room.findUnique({
+      where: { slug: parsed.data.roomSlug },
+      select: { id: true }
+    });
 
-  if (!room) {
-    return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
-  }
+    if (!room) {
+      return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
+    }
 
-  const participant = await prisma.participant.findUnique({
-    where: {
-      roomId_viewerId: {
-        roomId: room.id,
-        viewerId: parsed.data.viewerId
+    const participant = await prisma.participant.findUnique({
+      where: {
+        roomId_viewerId: {
+          roomId: room.id,
+          viewerId: parsed.data.viewerId
+        }
       }
-    }
-  });
+    });
 
-  if (!participant) {
-    return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 403 });
+    if (!participant) {
+      return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 403 });
+    }
+
+    const message = await prisma.message.create({
+      data: {
+        roomId: room.id,
+        nickname: participant.nickname,
+        viewerId: parsed.data.viewerId,
+        content: parsed.data.content
+      }
+    });
+
+    await prisma.messageRead.create({
+      data: {
+        roomId: room.id,
+        messageId: message.id,
+        participantId: participant.id
+      }
+    });
+
+    return NextResponse.json(message, { status: 201 });
+  } catch {
+    return createDatabaseUnavailableResponse();
   }
-
-  const message = await prisma.message.create({
-    data: {
-      roomId: room.id,
-      nickname: participant.nickname,
-      viewerId: parsed.data.viewerId,
-      content: parsed.data.content
-    }
-  });
-
-  await prisma.messageRead.create({
-    data: {
-      roomId: room.id,
-      messageId: message.id,
-      participantId: participant.id
-    }
-  });
-
-  return NextResponse.json(message, { status: 201 });
 }

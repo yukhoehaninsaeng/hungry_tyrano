@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createDatabaseUnavailableResponse, isDatabaseConfigured } from "@/lib/db-errors";
 import { prisma } from "@/lib/prisma";
 
 const settingsSchema = z.object({
@@ -9,6 +10,10 @@ const settingsSchema = z.object({
 });
 
 export async function PATCH(req: Request, { params }: { params: { slug: string } }) {
+  if (!isDatabaseConfigured()) {
+    return createDatabaseUnavailableResponse();
+  }
+
   const payload = await req.json();
   const parsed = settingsSchema.safeParse(payload);
 
@@ -19,31 +24,35 @@ export async function PATCH(req: Request, { params }: { params: { slug: string }
     );
   }
 
-  const room = await prisma.room.findUnique({ where: { slug: params.slug }, select: { id: true } });
-  if (!room) {
-    return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
-  }
+  try {
+    const room = await prisma.room.findUnique({ where: { slug: params.slug }, select: { id: true } });
+    if (!room) {
+      return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
+    }
 
-  const participant = await prisma.participant.findUnique({
-    where: {
-      roomId_viewerId: {
-        roomId: room.id,
-        viewerId: parsed.data.viewerId
+    const participant = await prisma.participant.findUnique({
+      where: {
+        roomId_viewerId: {
+          roomId: room.id,
+          viewerId: parsed.data.viewerId
+        }
       }
-    }
-  });
+    });
 
-  if (!participant) {
-    return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 404 });
+    if (!participant) {
+      return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 404 });
+    }
+
+    const updated = await prisma.participant.update({
+      where: { id: participant.id },
+      data: {
+        nickname: parsed.data.nickname ?? participant.nickname,
+        layout: parsed.data.layout ?? participant.layout
+      }
+    });
+
+    return NextResponse.json(updated);
+  } catch {
+    return createDatabaseUnavailableResponse();
   }
-
-  const updated = await prisma.participant.update({
-    where: { id: participant.id },
-    data: {
-      nickname: parsed.data.nickname ?? participant.nickname,
-      layout: parsed.data.layout ?? participant.layout
-    }
-  });
-
-  return NextResponse.json(updated);
 }

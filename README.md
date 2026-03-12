@@ -11,35 +11,30 @@
 - 닉네임과 채팅 레이아웃(compact/cozy) 변경
 - 비공개 방 비밀번호는 `scrypt` 기반 해시 + salt로 저장
 
-## 실행 방법
+## 로컬 실행
 
-1. 의존성 설치
+1. `pnpm install`
+2. `.env.example`을 복사해 `.env` 생성
+3. `pnpm exec prisma db push`
+4. `pnpm dev`
 
-```bash
-npm install
-```
+## Vercel 배포 체크리스트
 
-2. 환경 변수 설정
+배포 전에 아래 둘이 반드시 필요합니다.
 
-```bash
-cp .env.example .env
-```
+- Vercel Project Settings > Environment Variables에 `DATABASE_URL` 추가
+- 연결된 PostgreSQL에 Prisma 스키마 반영
 
-3. Prisma 마이그레이션 실행
-
-```bash
-npx prisma migrate dev --name init
-```
-
-4. 개발 서버 실행
+스키마 반영 명령:
 
 ```bash
-npm run dev
+pnpm exec prisma db push
 ```
 
-## 환경 변수
+Vercel에서 같은 오류가 반복되면 대부분 아래 둘 중 하나입니다.
 
-- `DATABASE_URL`: PostgreSQL 연결 URL
+- `DATABASE_URL`이 Vercel 환경 변수에 없음
+- DB는 연결됐지만 `Room`, `Participant`, `Message`, `MessageRead` 테이블이 아직 없음
 
 ## API
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createDatabaseUnavailableResponse, isDatabaseConfigured } from "@/lib/db-errors";
 import { prisma } from "@/lib/prisma";
 
 const readSchema = z.object({
@@ -8,6 +9,10 @@ const readSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  if (!isDatabaseConfigured()) {
+    return createDatabaseUnavailableResponse();
+  }
+
   const payload = await req.json();
   const parsed = readSchema.safeParse(payload);
 
@@ -18,50 +23,54 @@ export async function POST(req: Request) {
     );
   }
 
-  const room = await prisma.room.findUnique({
-    where: { slug: parsed.data.roomSlug },
-    select: { id: true }
-  });
+  try {
+    const room = await prisma.room.findUnique({
+      where: { slug: parsed.data.roomSlug },
+      select: { id: true }
+    });
 
-  if (!room) {
-    return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
-  }
-
-  const participant = await prisma.participant.findUnique({
-    where: {
-      roomId_viewerId: {
-        roomId: room.id,
-        viewerId: parsed.data.viewerId
-      }
+    if (!room) {
+      return NextResponse.json({ message: "방을 찾을 수 없습니다." }, { status: 404 });
     }
-  });
 
-  if (!participant) {
-    return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 403 });
-  }
-
-  const unreadMessages = await prisma.message.findMany({
-    where: {
-      roomId: room.id,
-      reads: {
-        none: {
-          participantId: participant.id
+    const participant = await prisma.participant.findUnique({
+      where: {
+        roomId_viewerId: {
+          roomId: room.id,
+          viewerId: parsed.data.viewerId
         }
       }
-    },
-    select: { id: true }
-  });
-
-  if (unreadMessages.length > 0) {
-    await prisma.messageRead.createMany({
-      data: unreadMessages.map((message) => ({
-        roomId: room.id,
-        messageId: message.id,
-        participantId: participant.id
-      })),
-      skipDuplicates: true
     });
-  }
 
-  return NextResponse.json({ readCount: unreadMessages.length });
+    if (!participant) {
+      return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 403 });
+    }
+
+    const unreadMessages = await prisma.message.findMany({
+      where: {
+        roomId: room.id,
+        reads: {
+          none: {
+            participantId: participant.id
+          }
+        }
+      },
+      select: { id: true }
+    });
+
+    if (unreadMessages.length > 0) {
+      await prisma.messageRead.createMany({
+        data: unreadMessages.map((message) => ({
+          roomId: room.id,
+          messageId: message.id,
+          participantId: participant.id
+        })),
+        skipDuplicates: true
+      });
+    }
+
+    return NextResponse.json({ readCount: unreadMessages.length });
+  } catch {
+    return createDatabaseUnavailableResponse();
+  }
 }
