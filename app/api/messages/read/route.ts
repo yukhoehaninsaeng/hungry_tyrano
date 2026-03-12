@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
   if (unreadMessages.length > 0) {
     await prisma.messageRead.createMany({
-      data: unreadMessages.map((message) => ({
+      data: unreadMessages.map((message: { id: string }) => ({
         roomId: room.id,
         messageId: message.id,
         participantId: participant.id

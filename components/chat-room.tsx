@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type Message = {
   id: string;
@@ -87,14 +87,14 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
     await markAsRead();
   }
 
-  async function loadMessages() {
+  const loadMessages = useCallback(async () => {
     const res = await fetch(`/api/messages?roomSlug=${roomSlug}`, { cache: "no-store" });
     if (!res.ok) return;
     const data = (await res.json()) as Message[];
     setMessages(data);
-  }
+  }, [roomSlug]);
 
-  async function markAsRead() {
+  const markAsRead = useCallback(async () => {
     if (!viewerId || !joined) return;
 
     await fetch("/api/messages/read", {
@@ -102,7 +102,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roomSlug, viewerId })
     });
-  }
+  }, [roomSlug, viewerId, joined]);
 
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
