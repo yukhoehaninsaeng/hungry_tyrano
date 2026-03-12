@@ -144,7 +144,7 @@ export function ChatRoom({ roomSlug, isPrivate }: { roomSlug: string; isPrivate:
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [joined, roomSlug]);
+  }, [joined, roomSlug, loadMessages, markAsRead]);
 
   if (!joined) {
     return (
