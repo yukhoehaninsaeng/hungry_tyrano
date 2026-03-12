@@ -40,7 +40,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "먼저 방에 입장해 주세요." }, { status: 403 });
   }
 
-  const unreadMessages = await prisma.message.findMany({
+  // 타입을 명시적으로 지정해서 noImplicitAny 오류 방지
+  const unreadMessages: { id: string }[] = await prisma.message.findMany({
     where: {
       roomId: room.id,
       reads: {
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
 
   if (unreadMessages.length > 0) {
     await prisma.messageRead.createMany({
-      data: unreadMessages.map((message: { id: string }) => ({
+      data: unreadMessages.map((message) => ({
         roomId: room.id,
         messageId: message.id,
         participantId: participant.id
