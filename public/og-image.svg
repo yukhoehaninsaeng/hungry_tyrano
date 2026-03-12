@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="토끼굴 오픈그래프 이미지">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#102116" />
+      <stop offset="55%" stop-color="#1f3b2e" />
+      <stop offset="100%" stop-color="#8df7a8" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <circle cx="170" cy="170" r="72" fill="rgba(255,255,255,0.12)" />
+  <text x="170" y="193" text-anchor="middle" font-size="72">🐇</text>
+  <text x="110" y="305" fill="#d7ffe2" font-size="44" font-family="Arial, sans-serif">rabbithole.co.kr</text>
+  <text x="110" y="395" fill="#ffffff" font-size="100" font-weight="700" font-family="Arial, sans-serif">토끼굴</text>
+  <text x="110" y="485" fill="#ffffff" font-size="56" font-weight="700" font-family="Arial, sans-serif">직장인 익명 채팅</text>
+  <text x="110" y="548" fill="#e5fff0" font-size="32" font-family="Arial, sans-serif">직장인이라면 다 아는 그 대화. 익명으로, 편하게.</text>
+</svg>
